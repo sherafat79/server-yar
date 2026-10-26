@@ -9,7 +9,7 @@ services:
       PORT: 8080
     ports:
       # Only reachable from this machine. Host Nginx terminates TLS and proxies to it.
-      - "127.0.0.1:6000:8080"
+      - "127.0.0.1:5050:8080"
     volumes:
       - serveryar_data:/data
 
