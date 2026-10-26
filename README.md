@@ -29,7 +29,6 @@ cp .env.example .env
 | --- | --- | --- |
 | `ENCRYPTION_KEY` | بله | کلید ۳۲ بایتی به‌صورت base64 برای رمزنگاری رمزهای ذخیره‌شده. ساخت: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `PUBLIC_URL` | بله (روی سرور) | آدرس عمومی پنل، مثل `https://panel.example.com`. در لینک‌ها استفاده می‌شود |
-| `DOMAIN` | بله (روی سرور) | دامنه‌ای که Caddy برایش گواهی SSL می‌گیرد. رکورد DNS آن باید به IP سرور اشاره کند |
 | `PORT` | خیر | پورت سرور API. پیش‌فرض `8080` |
 | `DATABASE_PATH` | خیر | مسیر فایل SQLite. پیش‌فرض `./data/serveryar.db` (در Docker: `/data/serveryar.db`) |
 | `TELEGRAM_BOT_TOKEN` | خیر | توکن ربات از BotFather. بدون آن نوتیف و بکاپ تلگرامی کار نمی‌کند |
@@ -54,7 +53,9 @@ pnpm dev                      # API روی :8080 و وب روی :5173
 
 ## دیپلوی روی سرور
 
-پیش‌نیاز: Docker، و یک رکورد DNS (مثلاً `panel.example.com`) که به IP سرور اشاره کند. پورت‌های **۸۰ و ۴۴۳** سرور باز باشند، چون Caddy با Let's Encrypt گواهی می‌گیرد.
+پیش‌نیاز: Docker، Nginx روی هاست با گواهی SSL (مثلاً با Certbot)، و یک رکورد DNS (مثلاً `panel.example.com`) که به IP سرور اشاره کند.
+
+پنل فقط روی `127.0.0.1:6000` منتشر می‌شود. SSL و دسترسی عمومی با Nginx انجام می‌شود، نه با خود Docker.
 
 ### ۱. ربات تلگرام (اختیاری ولی توصیه‌شده)
 
@@ -68,7 +69,7 @@ pnpm dev                      # API روی :8080 و وب روی :5173
 cp .env.example .env
 ```
 
-حداقل این مقادیر را پر کن: `ENCRYPTION_KEY`، `PUBLIC_URL=https://panel.example.com`، `DOMAIN=panel.example.com`، و در صورت استفاده از تلگرام، `TELEGRAM_BOT_TOKEN` و `TELEGRAM_CHANNEL_ID`.
+حداقل این مقادیر را پر کن: `ENCRYPTION_KEY`، `PUBLIC_URL=https://panel.example.com` (دامنه‌ای که Nginx به پنل وصل می‌کند)، و در صورت استفاده از تلگرام، `TELEGRAM_BOT_TOKEN` و `TELEGRAM_CHANNEL_ID`. `PORT` را روی `8080` نگه دار.
 
 ### ۳. اجرا
 
@@ -78,6 +79,29 @@ docker compose exec -it app node dist/create-admin.js <username> "<نام نما
 ```
 
 پرچم `-it` لازم است چون رمز از ورودی تعاملی خوانده می‌شود. رمز را در پرامپت وارد کن تا در تاریخچه شل ذخیره نشود.
+
+### ۳.۱. تنظیم Nginx
+
+یک server block برای دامنه بساز و آن را به `127.0.0.1:6000` وصل کن. گواهی SSL را با Certbot بگیر:
+
+```nginx
+server {
+    server_name panel.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:6000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen 443 ssl;
+    # ssl_certificate / ssl_certificate_key را Certbot اضافه می‌کند
+}
+```
 
 ### ۴. راه‌اندازی اولیه
 
@@ -118,7 +142,7 @@ requests.get("https://panel.example.com/hb/<token>", timeout=10)
 
 ## عیب‌یابی
 
-- **Caddy گواهی نمی‌گیرد:** رکورد DNS را بررسی کن که به IP درست اشاره کند و پورت‌های ۸۰ و ۴۴۳ باز باشند. لاگ را با `docker compose logs caddy` ببین.
+- **۵۰۲ Bad Gateway از Nginx:** مطمئن شو کانتینر بالاست (`docker compose ps`) و `curl -I http://127.0.0.1:6000/api/health` پاسخ `200` می‌دهد.
 - **`ENCRYPTION_KEY must be 32 bytes`:** کلید را دوباره با دستور بالا بساز. باید دقیقاً ۳۲ بایت باشد و به‌صورت base64 ذخیره شود.
 - **نوتیف تلگرام نمی‌آید:** توکن و آیدی کانال را بررسی کن و مطمئن شو ربات ادمین کانال است. اگر تلگرام از سرور در دسترس نیست، `TELEGRAM_PROXY` را تنظیم کن.
 - **`create-admin` در Docker منتظر ورودی می‌ماند یا خطا می‌دهد:** از `docker compose exec -it` استفاده کن.
@@ -145,4 +169,4 @@ packages/shared تایپ‌ها و اسکیمای Zod مشترک
 docs/SPEC.md    مشخصات کامل محصول
 ```
 
-فایل‌های دیپلوی: `Dockerfile` (ساخت image چندمرحله‌ای)، `docker-compose.yml` (سرویس‌های app و caddy) و `Caddyfile` (reverse proxy با SSL خودکار).
+فایل‌های دیپلوی: `Dockerfile` (ساخت image چندمرحله‌ای) و `docker-compose.yml` (سرویس app که روی `127.0.0.1:6000` منتشر می‌شود).
