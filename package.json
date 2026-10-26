@@ -1,0 +1,13 @@
+{
+  "name": "serveryar",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @serveryar/server --filter web dev",
+    "build": "pnpm --filter @serveryar/shared build && pnpm --filter web build && pnpm --filter @serveryar/server build",
+    "typecheck": "pnpm -r typecheck",
+    "create-admin": "pnpm --filter @serveryar/server create-admin"
+  }
+}
