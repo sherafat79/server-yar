@@ -56,6 +56,7 @@ export async function sendReminders() {
 
   // SSL certificates
   const certs: { name: string; exp: string | null }[] = [
+    ...(await db.select({ name: schema.certificates.hostname, exp: schema.certificates.sslExpiresAt }).from(schema.certificates).all()),
     ...(await db.select({ name: schema.domains.name, exp: schema.domains.sslExpiresAt }).from(schema.domains).all()),
     ...(await db.select({ name: schema.services.name, exp: schema.services.sslExpiresAt }).from(schema.services).all()),
   ]

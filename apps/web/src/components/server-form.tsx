@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { BILLING_CYCLES, type ServerDTO, type ServerInput } from "@serveryar/shared"
 import { api } from "@/lib/api"
-import { useAction, useProviders, useVendors } from "@/lib/queries"
+import { useAction, useLocations, useProviders, useVendors } from "@/lib/queries"
 import { CYCLE_LABEL } from "@/lib/format"
 import { Field } from "@/components/common"
 import { DateField } from "@/components/date-field"
@@ -99,6 +99,7 @@ export function ServerFormDialog({ open, onOpenChange, server }: { open: boolean
   const [tab, setTab] = useState("base")
   const providers = useProviders()
   const vendors = useVendors()
+  const locations = useLocations()
 
   useEffect(() => {
     if (open) {
@@ -153,7 +154,10 @@ export function ServerFormDialog({ open, onOpenChange, server }: { open: boolean
                 <NamedSelect endpoint="/vendors" items={vendors.data} value={f.vendorId} onChange={(v) => set("vendorId", v)} placeholder="بدون فروشنده" />
               </Field>
               <Field label="لوکیشن">
-                <Input value={f.location ?? ""} onChange={(e) => set("location", e.target.value)} placeholder="آلمان، فالکن‌اشتاین" />
+                <Input list="server-locations" value={f.location ?? ""} onChange={(e) => set("location", e.target.value)} placeholder="آلمان، فالکن‌اشتاین" />
+                <datalist id="server-locations">
+                  {locations.data?.map((l) => <option key={l.name} value={l.name} />)}
+                </datalist>
               </Field>
               <Field label="تگ‌ها">
                 <ListInput value={f.tags} onChange={(v) => set("tags", v)} placeholder="prod، bot" />

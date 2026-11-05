@@ -86,6 +86,9 @@ function namedRoutes(table: typeof schema.providers | typeof schema.vendors, ent
 export const providerRoutes = namedRoutes(schema.providers, "provider", "پروایدر")
 export const vendorRoutes = namedRoutes(schema.vendors, "vendor", "فروشنده")
 
+export const locationRoutes = new Hono<AppEnv>()
+locationRoutes.get("/", async (c) => c.json(await db.select().from(schema.locations).orderBy(schema.locations.name).all()))
+
 // ---------- settings ----------
 export const settingsRoutes = new Hono<AppEnv>()
 settingsRoutes.get("/", async (c) => c.json(await getSettings()))

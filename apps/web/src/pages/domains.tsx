@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Globe, Loader2, Lock, Pencil, Plus, RefreshCw } from "lucide-react"
+import { Globe, Loader2, Lock, Pencil, Plus, RefreshCw, Search } from "lucide-react"
 import type { DomainDTO, DomainInput } from "@serveryar/shared"
 import { api } from "@/lib/api"
-import { useAction, useDomains, useVendors } from "@/lib/queries"
+import { useAction, useCertificates, useDomains, useVendors } from "@/lib/queries"
+import { CertificateCard, CertificateForm } from "@/components/certificates"
 import { cn } from "@/lib/utils"
 import { daysText, daysUntil, faNum, gregorian, jalali, money, timeAgo, urgencyClass } from "@/lib/format"
 import { EmptyState, Field, PageHeader, Stagger, StaggerItem } from "@/components/common"
@@ -156,20 +157,34 @@ function DomainCard({ d }: { d: DomainDTO }) {
 
 export default function DomainsPage() {
   const { data, isLoading } = useDomains()
+  const certificates = useCertificates()
   const [open, setOpen] = useState(false)
-  const sorted = [...(data ?? [])].sort((a, b) => (a.expiresAt ?? "9999").localeCompare(b.expiresAt ?? "9999"))
+  const [sslOpen, setSslOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const sorted = (data ?? []).filter((d) => [d.name, d.registrar, d.notes].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => (a.expiresAt ?? "9999").localeCompare(b.expiresAt ?? "9999"))
+  const certs = (certificates.data ?? []).filter((c) => [c.hostname, c.sslIssuer, c.notes].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => (a.sslExpiresAt ?? "9999").localeCompare(b.sslExpiresAt ?? "9999"))
   return (
     <>
       <PageHeader
         title="دامنه‌ها"
         description="انقضا از whois و گواهی SSL روزانه چک می‌شوند"
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus />
-            دامنهٔ جدید
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setSslOpen(true)}><Lock /> افزودن SSL</Button>
+            <Button onClick={() => setOpen(true)}>
+              <Plus />
+              دامنهٔ جدید
+            </Button>
+          </div>
         }
       />
+      <div className="relative mb-4 w-full max-w-sm">
+        <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="جستجوی دامنه و SSL" placeholder="جستجوی دامنه، رجیسترار، SSL، یادداشت…" className="glass pr-9" />
+      </div>
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -177,7 +192,7 @@ export default function DomainsPage() {
           ))}
         </div>
       ) : sorted.length === 0 ? (
-        <EmptyState icon={<Globe />} title="هنوز دامنه‌ای ثبت نشده" />
+        <EmptyState icon={<Globe />} title={q ? "دامنه‌ای پیدا نشد" : "هنوز دامنه‌ای ثبت نشده"} />
       ) : (
         <Stagger className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sorted.map((d) => (
@@ -187,7 +202,18 @@ export default function DomainsPage() {
           ))}
         </Stagger>
       )}
+      <h2 className="mt-8 mb-4 font-semibold">گواهی‌های SSL مستقل</h2>
+      {certificates.isLoading ? <Skeleton className="h-40 rounded-2xl" /> : certificates.isError ? (
+        <div role="alert" className="text-sm text-danger">دریافت SSLها ناموفق بود <Button variant="ghost" onClick={() => certificates.refetch()}>تلاش مجدد</Button></div>
+      ) : certs.length === 0 ? (
+        <EmptyState icon={<Lock />} title={q ? "گواهی SSL پیدا نشد" : "هنوز SSL مستقلی ثبت نشده"} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {certs.map((c) => <CertificateCard key={c.id} certificate={c} />)}
+        </div>
+      )}
       <DomainForm open={open} onOpenChange={setOpen} />
+      <CertificateForm open={sslOpen} onOpenChange={setSslOpen} />
     </>
   )
 }

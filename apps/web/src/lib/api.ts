@@ -11,6 +11,7 @@ const MESSAGES: Record<string, string> = {
   validation: "مقادیر فرم معتبر نیست",
   username_taken: "این نام کاربری قبلاً ثبت شده",
   domain_exists: "این دامنه قبلاً ثبت شده",
+  certificate_exists: "SSL این میزبان قبلاً ثبت شده",
   wrong_password: "رمز فعلی اشتباه است",
   telegram_disabled: "ربات تلگرام روی سرور تنظیم نشده",
   cannot_delete_self: "نمی‌توانی خودت را حذف کنی",

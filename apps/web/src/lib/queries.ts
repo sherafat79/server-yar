@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type {
   ActivityDTO,
+  CertificateDTO,
   CheckPoint,
   DashboardDTO,
   DomainDTO,
@@ -33,6 +34,8 @@ export const useServices = (filter?: { serverId?: number; domainId?: number }) =
   return useQuery({ queryKey: ["services", filter ?? {}], queryFn: () => api<ServiceDTO[]>(`/services${qs}`), ...LIVE })
 }
 export const useDomains = () => useQuery({ queryKey: ["domains"], queryFn: () => api<DomainDTO[]>("/domains") })
+export const useCertificates = () => useQuery({ queryKey: ["certificates"], queryFn: () => api<CertificateDTO[]>("/certificates") })
+export const useLocations = () => useQuery({ queryKey: ["locations"], queryFn: () => api<{ name: string }[]>("/locations") })
 export const useProviders = () => useQuery({ queryKey: ["providers"], queryFn: () => api<Named[]>("/providers") })
 export const useVendors = () => useQuery({ queryKey: ["vendors"], queryFn: () => api<Named[]>("/vendors") })
 export const useRenewals = () => useQuery({ queryKey: ["renewals"], queryFn: () => api<RenewalItem[]>("/renewals?days=400") })

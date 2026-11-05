@@ -62,6 +62,23 @@ export async function refreshDomain(id: number) {
 export async function refreshAllDomains() {
   const rows = await db.select({ id: domains.id }).from(domains).all()
   for (const r of rows) await refreshDomain(r.id)
+  const certs = await db.select({ id: schema.certificates.id }).from(schema.certificates).all()
+  for (const r of certs) await refreshCertificate(r.id)
+}
+
+export async function refreshCertificate(id: number) {
+  const table = schema.certificates
+  const row = await db.select().from(table).where(eq(table.id, id)).get()
+  if (!row) return
+  const patch: Partial<typeof table.$inferInsert> = { lastCheckedAt: nowIso(), lastError: null }
+  try {
+    const cert = await sslCert(row.hostname)
+    patch.sslExpiresAt = cert.validTo
+    patch.sslIssuer = cert.issuer
+  } catch {
+    patch.lastError = "دریافت گواهی SSL ناموفق بود؛ اتصال و نام میزبان را بررسی کن"
+  }
+  await db.update(table).set(patch).where(eq(table.id, id))
 }
 
 /** SSL expiry for HTTPS services (hostname or https check URL). */

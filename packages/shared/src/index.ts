@@ -128,6 +128,21 @@ export const domainSchema = z.object({
 })
 export type DomainInput = z.infer<typeof domainSchema>
 
+export const certificateSchema = z.object({
+  hostname: z.string().trim().toLowerCase().min(3).max(253)
+    .regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/, "نام میزبان معتبر وارد کن"),
+  notes: z.string().max(5000).optional().nullable(),
+})
+export type CertificateInput = z.infer<typeof certificateSchema>
+export interface CertificateDTO extends CertificateInput {
+  id: number
+  sslExpiresAt: string | null
+  sslIssuer: string | null
+  lastCheckedAt: string | null
+  lastError: string | null
+  createdAt: string
+}
+
 // ---------- renewals ----------
 export const renewSchema = z.object({
   amount: z.coerce.number().nonnegative().optional(),

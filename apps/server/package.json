@@ -8,6 +8,7 @@
     "build": "node build.mjs",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/routes/features.test.ts",
     "db:generate": "drizzle-kit generate",
     "create-admin": "tsx --env-file-if-exists=../../.env src/cli/create-admin.ts"
   },

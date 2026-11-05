@@ -82,6 +82,21 @@ export const servers = sqliteTable("servers", {
   updatedAt: updatedAt(),
 })
 
+export const locations = sqliteTable("locations", {
+  name: text("name").primaryKey(),
+})
+
+export const certificates = sqliteTable("certificates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  hostname: text("hostname").notNull().unique(),
+  notes: text("notes"),
+  sslExpiresAt: text("ssl_expires_at"),
+  sslIssuer: text("ssl_issuer"),
+  lastCheckedAt: text("last_checked_at"),
+  lastError: text("last_error"),
+  createdAt: createdAt(),
+})
+
 export const domains = sqliteTable("domains", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
