@@ -36,6 +36,7 @@ domainRoutes.post("/", async (c) => {
   const input = await body(c, domainSchema)
   if (await db.select().from(domains).where(eq(domains.name, input.name)).get()) throw new HttpError(409, "domain_exists")
   const [row] = await db.insert(domains).values(input).returning()
+  if (row!.registrar) await db.insert(schema.registrars).values({ name: row!.registrar }).onConflictDoNothing()
   await logActivity(c.get("user").id, "create", "domain", row!.id, `دامنه «${row!.name}» اضافه شد`)
   refreshDomain(row!.id).catch(() => {}) // fetch whois/SSL in the background
   const [dto] = await toDTOs([row!])
@@ -47,6 +48,7 @@ domainRoutes.patch("/:id", async (c) => {
   const input = await body(c, domainSchema.partial())
   const [row] = await db.update(domains).set(input).where(eq(domains.id, id)).returning()
   if (!row) throw notFound()
+  if (row.registrar) await db.insert(schema.registrars).values({ name: row.registrar }).onConflictDoNothing()
   await logActivity(c.get("user").id, "update", "domain", id, `دامنه «${row.name}» ویرایش شد`)
   const [dto] = await toDTOs([row])
   return c.json(dto)

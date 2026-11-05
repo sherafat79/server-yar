@@ -86,6 +86,10 @@ export const locations = sqliteTable("locations", {
   name: text("name").primaryKey(),
 })
 
+export const registrars = sqliteTable("registrars", {
+  name: text("name").primaryKey(),
+})
+
 export const certificates = sqliteTable("certificates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   hostname: text("hostname").notNull().unique(),

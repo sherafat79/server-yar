@@ -2,13 +2,14 @@ import { useEffect, useState } from "react"
 import { Globe, Loader2, Lock, Pencil, Plus, RefreshCw, Search } from "lucide-react"
 import type { DomainDTO, DomainInput } from "@serveryar/shared"
 import { api } from "@/lib/api"
-import { useAction, useCertificates, useDomains, useVendors } from "@/lib/queries"
+import { useAction, useCertificates, useDomains, useRegistrars, useVendors } from "@/lib/queries"
+import { DOMAIN_SORTS, domainList } from "@/lib/domain-list"
 import { CertificateCard, CertificateForm } from "@/components/certificates"
 import { cn } from "@/lib/utils"
 import { daysText, daysUntil, faNum, gregorian, jalali, money, timeAgo, urgencyClass } from "@/lib/format"
 import { EmptyState, Field, PageHeader, Stagger, StaggerItem } from "@/components/common"
 import { DateField } from "@/components/date-field"
-import { ConfirmDelete, CurrencySelect, NamedSelect, useFormState } from "@/components/forms"
+import { ConfirmDelete, CurrencySelect, NamedSelect, SimpleSelect, useFormState } from "@/components/forms"
 import { RenewButton } from "@/components/renew-dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -25,6 +26,7 @@ const blank: DomainInput = { name: "", registrar: "", vendorId: null, expiresAt:
 function DomainForm({ open, onOpenChange, domain }: { open: boolean; onOpenChange: (o: boolean) => void; domain?: DomainDTO }) {
   const [f, set, setAll] = useFormState<DomainInput>(blank)
   const vendors = useVendors()
+  const registrars = useRegistrars()
   useEffect(() => {
     if (open) setAll(domain ? { ...blank, ...domain } : blank)
   }, [open, domain, setAll])
@@ -50,7 +52,10 @@ function DomainForm({ open, onOpenChange, domain }: { open: boolean; onOpenChang
             <Input dir="ltr" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="example.com" required autoFocus disabled={!!domain} />
           </Field>
           <Field label="رجیسترار">
-            <Input value={f.registrar ?? ""} onChange={(e) => set("registrar", e.target.value)} placeholder="Namecheap، ایرنیک…" />
+            <Input list="domain-registrars" value={f.registrar ?? ""} onChange={(e) => set("registrar", e.target.value)} placeholder="Namecheap، ایرنیک…" />
+            <datalist id="domain-registrars">
+              {registrars.data?.map((r) => <option key={r.name} value={r.name} />)}
+            </datalist>
           </Field>
           <Field label="فروشنده">
             <NamedSelect endpoint="/vendors" items={vendors.data} value={f.vendorId} onChange={(v) => set("vendorId", v)} placeholder="بدون فروشنده" />
@@ -89,7 +94,7 @@ function DomainForm({ open, onOpenChange, domain }: { open: boolean; onOpenChang
   )
 }
 
-function DomainCard({ d }: { d: DomainDTO }) {
+function DomainCard({ d, vendor }: { d: DomainDTO; vendor?: string }) {
   const [edit, setEdit] = useState(false)
   const del = useAction(() => api(`/domains/${d.id}`, { method: "DELETE" }), "دامنه حذف شد")
   const refresh = useAction(() => api(`/domains/${d.id}/refresh`, { body: {} }), "whois و SSL به‌روز شد")
@@ -109,6 +114,7 @@ function DomainCard({ d }: { d: DomainDTO }) {
             <div className="text-xs text-muted-foreground">
               {d.registrar || "رجیسترار نامشخص"} · {faNum(d.serviceCount)} سرویس
             </div>
+            {vendor && <div className="text-xs text-muted-foreground">فروشنده: {vendor}</div>}
           </div>
         </div>
         <div className="flex shrink-0">
@@ -158,12 +164,14 @@ function DomainCard({ d }: { d: DomainDTO }) {
 export default function DomainsPage() {
   const { data, isLoading } = useDomains()
   const certificates = useCertificates()
+  const vendors = useVendors()
   const [open, setOpen] = useState(false)
   const [sslOpen, setSslOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const [vendor, setVendor] = useState("all")
+  const [sort, setSort] = useState<keyof typeof DOMAIN_SORTS>("expiryAsc")
   const q = query.trim().toLowerCase()
-  const sorted = (data ?? []).filter((d) => [d.name, d.registrar, d.notes].join(" ").toLowerCase().includes(q))
-    .sort((a, b) => (a.expiresAt ?? "9999").localeCompare(b.expiresAt ?? "9999"))
+  const sorted = domainList(data ?? [], vendors.data ?? [], query, vendor, sort)
   const certs = (certificates.data ?? []).filter((c) => [c.hostname, c.sslIssuer, c.notes].join(" ").toLowerCase().includes(q))
     .sort((a, b) => (a.sslExpiresAt ?? "9999").localeCompare(b.sslExpiresAt ?? "9999"))
   return (
@@ -181,9 +189,17 @@ export default function DomainsPage() {
           </div>
         }
       />
-      <div className="relative mb-4 w-full max-w-sm">
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+      <div className="relative w-full max-w-sm">
         <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="جستجوی دامنه و SSL" placeholder="جستجوی دامنه، رجیسترار، SSL، یادداشت…" className="glass pr-9" />
+      </div>
+        <Field label="فروشنده" className="w-full sm:w-48">
+          <SimpleSelect value={vendor} onChange={setVendor} options={{ all: "همهٔ فروشنده‌ها", none: "بدون فروشنده", ...Object.fromEntries(vendors.data?.map((v) => [String(v.id), v.name]) ?? []) }} />
+        </Field>
+        <Field label="مرتب‌سازی دامنه‌ها" className="w-full sm:w-48">
+          <SimpleSelect value={sort} onChange={setSort} options={DOMAIN_SORTS} />
+        </Field>
       </div>
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -192,12 +208,12 @@ export default function DomainsPage() {
           ))}
         </div>
       ) : sorted.length === 0 ? (
-        <EmptyState icon={<Globe />} title={q ? "دامنه‌ای پیدا نشد" : "هنوز دامنه‌ای ثبت نشده"} />
+        <EmptyState icon={<Globe />} title={q || vendor !== "all" ? "دامنه‌ای پیدا نشد" : "هنوز دامنه‌ای ثبت نشده"} />
       ) : (
         <Stagger className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sorted.map((d) => (
             <StaggerItem key={d.id}>
-              <DomainCard d={d} />
+              <DomainCard d={d} vendor={vendors.data?.find((v) => v.id === d.vendorId)?.name} />
             </StaggerItem>
           ))}
         </Stagger>

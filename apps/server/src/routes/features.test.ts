@@ -4,7 +4,8 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { test } from "node:test"
 import { Hono } from "hono"
-import type { CertificateDTO, ServerDTO } from "@serveryar/shared"
+import type { CertificateDTO, DomainDTO, Named, ServerDTO } from "@serveryar/shared"
+import { domainList } from "../../../web/src/lib/domain-list.ts"
 import type { AppEnv } from "../auth.ts"
 
 test("independent SSL and remembered locations survive CRUD and migrations", async () => {
@@ -24,15 +25,18 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
   try {
     await runMigrations()
     await db.insert(schema.servers).values({ name: "existing", location: " Berlin " })
+    const [oldDomain] = await db.insert(schema.domains).values({ name: "existing.invalid", registrar: " Existing Registrar " }).returning()
     process.env.MIGRATIONS_DIR = migrations
     await runMigrations()
     await runMigrations()
     assert.deepEqual(await db.select().from(schema.locations), [{ name: "Berlin" }])
+    assert.deepEqual(await db.select().from(schema.registrars), [{ name: "Existing Registrar" }])
 
     const [user] = await db.insert(schema.users).values({ username: "test", displayName: "Test", passwordHash: "unused" }).returning()
     const { certificateRoutes } = await import("./certificates.ts")
     const { serverRoutes } = await import("./servers.ts")
-    const { locationRoutes } = await import("./admin.ts")
+    const { locationRoutes, registrarRoutes } = await import("./admin.ts")
+    const { domainRoutes } = await import("./domains.ts")
     const { HttpError } = await import("../lib/http.ts")
     const app = new Hono<AppEnv>()
     app.use("*", async (c, next) => { c.set("user", user!); await next() })
@@ -43,6 +47,8 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     app.route("/certificates", certificateRoutes)
     app.route("/servers", serverRoutes)
     app.route("/locations", locationRoutes)
+    app.route("/registrars", registrarRoutes)
+    app.route("/domains", domainRoutes)
     const request = (path: string, method = "GET", body?: unknown) => app.request(path, {
       method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body),
     })
@@ -57,7 +63,7 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     assert.ok(cert.lastCheckedAt)
     assert.ok(cert.lastError)
     assert.equal(cert.sslExpiresAt, null)
-    assert.equal((await db.select().from(schema.domains)).length, 0)
+    assert.equal((await db.select().from(schema.domains)).length, 1)
     assert.equal((await request("/certificates", "POST", { hostname: "missing.invalid" })).status, 409)
     assert.equal(((await (await request("/certificates")).json()) as CertificateDTO[]).length, 1)
     assert.equal((await request(`/certificates/${cert.id}/refresh`, "POST", {})).status, 200)
@@ -74,8 +80,37 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     assert.deepEqual(await (await request("/locations")).json(), [{ name: "Berlin" }, { name: "Paris" }, { name: "Tehran" }])
     await request("/servers", "POST", { name: "another", location: "Tehran" })
     assert.equal(((await (await request("/locations")).json()) as { name: string }[]).length, 3)
+
+    assert.equal((await request(`/domains/${oldDomain!.id}`, "PATCH", { registrar: " Namecheap " })).status, 200)
+    assert.equal((await request(`/domains/${oldDomain!.id}`, "PATCH", { registrar: "IRNIC" })).status, 200)
+    assert.equal((await request(`/domains/${oldDomain!.id}`, "DELETE")).status, 200)
+    assert.deepEqual(await (await request("/registrars")).json(), [{ name: "Existing Registrar" }, { name: "IRNIC" }, { name: "Namecheap" }])
+    const [another] = await db.insert(schema.domains).values({ name: "another.invalid" }).returning()
+    await request(`/domains/${another!.id}`, "PATCH", { registrar: "Namecheap" })
+    await request(`/domains/${another!.id}`, "PATCH", { registrar: "   " })
+    assert.equal(((await (await request("/registrars")).json()) as { name: string }[]).length, 3)
   } finally {
     client.close()
-    await rm(folder, { recursive: true, force: true })
+    await rm(folder, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
   }
+})
+
+test("domain filters and sort orders combine without moving unknown expiry dates to the top", () => {
+  const domains = [
+    { id: 1, name: "z.example", expiresAt: "2027-01-01", vendorId: 1, registrar: "IRNIC" },
+    { id: 2, name: "a.example", expiresAt: null, vendorId: null },
+    { id: 3, name: "b.example", expiresAt: "2026-12-01", vendorId: 2 },
+  ] as DomainDTO[]
+  const vendors = [{ id: 1, name: "Beta" }, { id: 2, name: "Alpha" }] as Named[]
+  const ids = (query: string, vendor: string, sort: Parameters<typeof domainList>[4]) => domainList(domains, vendors, query, vendor, sort).map((d) => d.id)
+  assert.deepEqual(ids("", "all", "expiryAsc"), [3, 1, 2])
+  assert.deepEqual(ids("", "all", "expiryDesc"), [1, 3, 2])
+  assert.deepEqual(ids("", "all", "nameAsc"), [2, 3, 1])
+  assert.deepEqual(ids("", "all", "nameDesc"), [1, 3, 2])
+  assert.deepEqual(ids("", "all", "vendor"), [2, 3, 1])
+  assert.deepEqual(ids(" IRNIC ", "1", "nameAsc"), [1])
+  assert.deepEqual(ids("ALPHA", "all", "expiryAsc"), [3])
+  assert.deepEqual(ids("", "none", "nameAsc"), [2])
+  assert.deepEqual(ids("z", "2", "nameAsc"), [])
+  assert.deepEqual(domains.map((d) => d.id), [1, 2, 3])
 })

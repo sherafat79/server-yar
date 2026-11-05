@@ -89,6 +89,9 @@ export const vendorRoutes = namedRoutes(schema.vendors, "vendor", "فروشند�
 export const locationRoutes = new Hono<AppEnv>()
 locationRoutes.get("/", async (c) => c.json(await db.select().from(schema.locations).orderBy(schema.locations.name).all()))
 
+export const registrarRoutes = new Hono<AppEnv>()
+registrarRoutes.get("/", async (c) => c.json(await db.select().from(schema.registrars).orderBy(schema.registrars.name).all()))
+
 // ---------- settings ----------
 export const settingsRoutes = new Hono<AppEnv>()
 settingsRoutes.get("/", async (c) => c.json(await getSettings()))

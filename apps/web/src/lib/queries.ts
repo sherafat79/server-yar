@@ -36,6 +36,7 @@ export const useServices = (filter?: { serverId?: number; domainId?: number }) =
 export const useDomains = () => useQuery({ queryKey: ["domains"], queryFn: () => api<DomainDTO[]>("/domains") })
 export const useCertificates = () => useQuery({ queryKey: ["certificates"], queryFn: () => api<CertificateDTO[]>("/certificates") })
 export const useLocations = () => useQuery({ queryKey: ["locations"], queryFn: () => api<{ name: string }[]>("/locations") })
+export const useRegistrars = () => useQuery({ queryKey: ["registrars"], queryFn: () => api<{ name: string }[]>("/registrars") })
 export const useProviders = () => useQuery({ queryKey: ["providers"], queryFn: () => api<Named[]>("/providers") })
 export const useVendors = () => useQuery({ queryKey: ["vendors"], queryFn: () => api<Named[]>("/vendors") })
 export const useRenewals = () => useQuery({ queryKey: ["renewals"], queryFn: () => api<RenewalItem[]>("/renewals?days=400") })

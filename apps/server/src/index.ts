@@ -9,7 +9,7 @@ import { requireAuth, type AppEnv } from "./auth.ts"
 import { runMigrations } from "./db/index.ts"
 import { env } from "./env.ts"
 import { HttpError } from "./lib/http.ts"
-import { locationRoutes, providerRoutes, settingsRoutes, userRoutes, vendorRoutes } from "./routes/admin.ts"
+import { locationRoutes, providerRoutes, registrarRoutes, settingsRoutes, userRoutes, vendorRoutes } from "./routes/admin.ts"
 import { certificateRoutes } from "./routes/certificates.ts"
 import { authRoutes } from "./routes/auth.ts"
 import { domainRoutes } from "./routes/domains.ts"
@@ -54,6 +54,7 @@ api.route("/services", serviceRoutes)
 api.route("/domains", domainRoutes)
 api.route("/certificates", certificateRoutes)
 api.route("/locations", locationRoutes)
+api.route("/registrars", registrarRoutes)
 api.route("/", overviewRoutes)
 app.route("/api", api)
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404))
