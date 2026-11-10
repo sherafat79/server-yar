@@ -90,6 +90,7 @@ export const serverSchema = z.object({
   nextRenewal: isoDate.optional().nullable(),
   autoRenew: z.boolean().default(false),
   monitor: z.boolean().default(true),
+  alertDelayMin: z.coerce.number().int().min(0).max(1440).default(5),
   tags: z.array(z.string().trim().min(1)).default([]),
   notes: z.string().max(5000).optional().nullable(),
   archived: z.boolean().default(false),
@@ -108,6 +109,7 @@ export const serviceSchema = z.object({
   checkUrl: optStr,
   checkKeyword: optStr,
   heartbeatGraceSec: z.coerce.number().int().min(60).max(86400 * 7).default(600),
+  alertDelayMin: z.coerce.number().int().min(0).max(1440).default(5),
   path: optStr,
   tags: z.array(z.string().trim().min(1)).default([]),
   notes: z.string().max(5000).optional().nullable(),
@@ -165,6 +167,10 @@ export const settingsSchema = z.object({
   reminderHour: z.number().int().min(0).max(23).optional(),
   sslReminderDays: z.array(z.number().int().min(0).max(90)).optional(),
   backupHour: z.number().int().min(0).max(23).optional(),
+  /** Telegram channel for outage / recovery alerts; null = fall back to TELEGRAM_CHANNEL_ID */
+  outageChannelId: z.string().trim().max(100).nullable().optional(),
+  /** Telegram channel for renewal / SSL reminders; null = fall back to TELEGRAM_CHANNEL_ID */
+  renewalChannelId: z.string().trim().max(100).nullable().optional(),
 })
 export type SettingsDTO = Required<z.infer<typeof settingsSchema>>
 

@@ -26,7 +26,7 @@ async function toDTOs(rows: Row[]): Promise<ServerDTO[]> {
   ])
   const countMap = new Map(counts.map((r) => [r.id, r.n]))
   return rows.map((r) => {
-    const { sshPassword, sshKey, panelPassword, consecutiveFails: _cf, lastError: _le, ...rest } = r
+    const { sshPassword, sshKey, panelPassword, consecutiveFails: _cf, downAlerted: _da, lastError: _le, ...rest } = r
     return {
       ...rest,
       hasSshPassword: !!sshPassword,

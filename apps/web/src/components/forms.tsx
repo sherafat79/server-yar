@@ -130,6 +130,16 @@ export function SimpleSelect<T extends string>({ id, value, onChange, options }:
   )
 }
 
+const ALERT_DELAYS = [0, 2, 5, 10, 15, 30, 60]
+const delayLabel = (m: number) => (m === 0 ? "آنی (به محض قطعی)" : `بعد از ${m.toLocaleString("fa-IR")} دقیقه قطعی${m === 5 ? " — پیش‌فرض" : ""}`)
+
+/** How long a target must stay down before the outage alert is sent. */
+export function AlertDelaySelect({ id, value, onChange }: { id?: string; value: number; onChange: (v: number) => void }) {
+  const values = ALERT_DELAYS.includes(value) ? ALERT_DELAYS : [...ALERT_DELAYS, value].sort((a, b) => a - b)
+  const options = Object.fromEntries(values.map((m) => [String(m), delayLabel(m)])) as Record<string, string>
+  return <SimpleSelect id={id} value={String(value)} onChange={(v) => onChange(Number(v))} options={options} />
+}
+
 /** Comma / newline separated list input. */
 export function ListInput({ id, value, onChange, placeholder, ltr }: { id?: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string; ltr?: boolean }) {
   const [text, setText] = useState(value.join("، "))

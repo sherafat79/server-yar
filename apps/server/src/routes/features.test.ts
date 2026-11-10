@@ -24,7 +24,8 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
   const { db, schema, client, runMigrations } = await import("../db/index.ts")
   try {
     await runMigrations()
-    await db.insert(schema.servers).values({ name: "existing", location: " Berlin " })
+    // raw SQL: the baseline schema lacks columns added by later migrations
+    await client.execute({ sql: "INSERT INTO servers (name, location) VALUES (?, ?)", args: ["existing", " Berlin "] })
     const [oldDomain] = await db.insert(schema.domains).values({ name: "existing.invalid", registrar: " Existing Registrar " }).returning()
     process.env.MIGRATIONS_DIR = migrations
     await runMigrations()

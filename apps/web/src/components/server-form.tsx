@@ -6,7 +6,7 @@ import { useAction, useLocations, useProviders, useVendors } from "@/lib/queries
 import { CYCLE_LABEL } from "@/lib/format"
 import { Field } from "@/components/common"
 import { DateField } from "@/components/date-field"
-import { CurrencySelect, ListInput, NamedSelect, SimpleSelect, useFormState } from "@/components/forms"
+import { AlertDelaySelect, CurrencySelect, ListInput, NamedSelect, SimpleSelect, useFormState } from "@/components/forms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -46,6 +46,7 @@ const blank: Form = {
   nextRenewal: null,
   autoRenew: false,
   monitor: true,
+  alertDelayMin: 5,
   tags: [],
   notes: "",
   archived: false,
@@ -164,6 +165,9 @@ export function ServerFormDialog({ open, onOpenChange, server }: { open: boolean
               </Field>
               <Field label="یادداشت" className="sm:col-span-2">
                 <Textarea rows={3} value={f.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
+              </Field>
+              <Field label="اعلان قطعی" hint="برای سرورهای حساس «آنی» بگذار">
+                <AlertDelaySelect value={f.alertDelayMin} onChange={(v) => set("alertDelayMin", v)} />
               </Field>
               <div className="flex flex-wrap gap-6 sm:col-span-2">
                 <Label className="flex items-center gap-2">

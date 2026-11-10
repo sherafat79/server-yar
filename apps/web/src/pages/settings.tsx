@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Bell, Building2, KeyRound, Loader2, Send, ShieldCheck, Store, Unlink, UserPlus, Users } from "lucide-react"
+import { Bell, Building2, Megaphone, KeyRound, Loader2, Send, ShieldCheck, Store, Unlink, UserPlus, Users } from "lucide-react"
 import { toast } from "sonner"
 import type { Named, Role, UserDTO } from "@serveryar/shared"
 import { api } from "@/lib/api"
@@ -295,6 +295,53 @@ function RemindersCard() {
   )
 }
 
+function ChannelsCard() {
+  const { data } = useSettings()
+  const [outage, setOutage] = useState("")
+  const [renewal, setRenewal] = useState("")
+  useEffect(() => {
+    if (data) {
+      setOutage(data.outageChannelId ?? "")
+      setRenewal(data.renewalChannelId ?? "")
+    }
+  }, [data])
+  const save = useAction(
+    () => api("/settings", { method: "PATCH", body: { outageChannelId: outage.trim() || null, renewalChannelId: renewal.trim() || null } }),
+    "کانال‌ها ذخیره شد",
+  )
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Megaphone className="size-4" /> کانال‌های نوتیف تلگرام
+        </CardTitle>
+        <CardDescription>
+          آیدی عددی مثل <span className="ltr">-1001234567890</span> یا <span className="ltr">@channel</span>. ربات باید ادمین هر دو کانال باشد. خالی = کانال پیش‌فرض (TELEGRAM_CHANNEL_ID)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate(undefined)
+          }}
+        >
+          <Field label="کانال قطعی‌ها" hint="قطع و وصل شدن سرورها و سرویس‌ها">
+            <Input dir="ltr" value={outage} onChange={(e) => setOutage(e.target.value)} placeholder="-100…" />
+          </Field>
+          <Field label="کانال تمدیدها" hint="یادآوری تمدید، تمدید خودکار و SSL">
+            <Input dir="ltr" value={renewal} onChange={(e) => setRenewal(e.target.value)} placeholder="-100…" />
+          </Field>
+          <Button type="submit" disabled={save.isPending}>
+            ذخیره
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function SettingsPage({ user }: { user: UserDTO }) {
   const providers = useProviders()
   const vendors = useVendors()
@@ -312,6 +359,11 @@ export default function SettingsPage({ user }: { user: UserDTO }) {
         )}
         <NamedListCard title="پروایدرها / دیتاسنترها" icon={<Building2 className="size-4" />} endpoint="/providers" items={providers.data} />
         <NamedListCard title="فروشنده‌ها" icon={<Store className="size-4" />} endpoint="/vendors" items={vendors.data} />
+        {isAdmin && (
+          <div className="lg:col-span-2">
+            <ChannelsCard />
+          </div>
+        )}
         {isAdmin && (
           <div className="lg:col-span-2">
             <RemindersCard />

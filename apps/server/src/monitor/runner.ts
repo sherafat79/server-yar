@@ -45,10 +45,26 @@ async function probeService(
   }
 }
 
-/** Apply a probe result: store the check, flip status after N consecutive fails, open/close incidents, notify. */
+/** Small slack so a once-a-minute check doesn't miss the delay by a few ms and wait a whole extra minute. */
+const DELAY_SLACK_MS = 10_000
+
+async function openIncidents(type: Target, id: number) {
+  return db
+    .select()
+    .from(incidents)
+    .where(and(eq(incidents.targetType, type), eq(incidents.targetId, id), isNull(incidents.resolvedAt)))
+    .orderBy(incidents.startedAt)
+    .all()
+}
+
+/**
+ * Apply a probe result: store the check, flip status after N consecutive fails, open/close incidents, notify.
+ * The outage alert waits until the target has been down for `alertDelayMin` minutes (0 = right away);
+ * the recovery message only goes out if the outage alert did.
+ */
 async function record(
   type: Target,
-  row: { id: number; name: string; status: string; consecutiveFails: number },
+  row: { id: number; name: string; status: string; consecutiveFails: number; alertDelayMin: number; downAlerted: boolean },
   r: ProbeResult,
 ) {
   const table = type === "server" ? servers : services
@@ -61,25 +77,46 @@ async function record(
   else if (fails >= FAILS_BEFORE_DOWN) status = "down"
   else if (row.status === "pending") status = "pending"
 
-  await db
-    .update(table)
-    .set({ status: status as "up", consecutiveFails: fails, lastCheckedAt: new Date(ts).toISOString(), latencyMs: r.ms, lastError: r.ok ? null : (r.error ?? null) })
-    .where(eq(table.id, row.id))
-
   const label = type === "server" ? "سرور" : "سرویس"
+  const downMsg = (extra: string) => `🔴 <b>${label} «${esc(row.name)}» از دسترس خارج شد</b>${extra}
+${esc(r.error ?? "")}`
+  let alerted = row.downAlerted
+
   if (status === "down" && row.status !== "down") {
     await db.insert(incidents).values({ targetType: type, targetId: row.id, startedAt: nowIso(), cause: r.error ?? null })
-    await notify(`🔴 <b>${label} «${esc(row.name)}» از دسترس خارج شد</b>\n${esc(r.error ?? "")}`)
+    alerted = false
+    if (row.alertDelayMin <= 0) {
+      await notify("outage", downMsg(""))
+      alerted = true
+    }
+  } else if (status === "down" && !alerted) {
+    const [inc] = await openIncidents(type, row.id)
+    const downFor = inc ? ts - Date.parse(inc.startedAt) : Infinity
+    if (downFor + DELAY_SLACK_MS >= row.alertDelayMin * 60_000) {
+      await notify("outage", downMsg(Number.isFinite(downFor) ? `
+⏱ ${formatDuration(downFor)} است که قطع است` : ""))
+      alerted = true
+    }
   } else if (status === "up" && row.status === "down") {
-    const open = await db
-      .select()
-      .from(incidents)
-      .where(and(eq(incidents.targetType, type), eq(incidents.targetId, row.id), isNull(incidents.resolvedAt)))
-      .all()
+    const open = await openIncidents(type, row.id)
     for (const inc of open) await db.update(incidents).set({ resolvedAt: nowIso() }).where(eq(incidents.id, inc.id))
-    const since = open[0] ? formatDuration(Date.now() - Date.parse(open[0].startedAt)) : null
-    await notify(`🟢 <b>${label} «${esc(row.name)}» دوباره در دسترس است</b>${since ? `\nمدت قطعی: ${since}` : ""}`)
+    const since = open[0] ? formatDuration(ts - Date.parse(open[0].startedAt)) : null
+    if (row.downAlerted) await notify("outage", `🟢 <b>${label} «${esc(row.name)}» دوباره در دسترس است</b>${since ? `
+مدت قطعی: ${since}` : ""}`)
+    alerted = false
   }
+
+  await db
+    .update(table)
+    .set({
+      status: status as "up",
+      consecutiveFails: fails,
+      downAlerted: alerted,
+      lastCheckedAt: new Date(ts).toISOString(),
+      latencyMs: r.ms,
+      lastError: r.ok ? null : (r.error ?? null),
+    })
+    .where(eq(table.id, row.id))
 }
 
 /** Ends expired maintenance windows. */

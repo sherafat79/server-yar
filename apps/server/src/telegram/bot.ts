@@ -5,6 +5,7 @@ import { SocksProxyAgent } from "socks-proxy-agent"
 import { db, schema } from "../db/index.ts"
 import { env } from "../env.ts"
 import { formatJalali } from "../lib/dates.ts"
+import { getSettings } from "../lib/settings.ts"
 
 export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
@@ -131,11 +132,18 @@ export async function startBot() {
   }).catch((e) => console.error("[telegram] polling stopped:", e.message))
 }
 
-/** Post to the channel (or every linked user when no channel is configured). Never throws. */
-export async function notify(html: string) {
+export type NotifyChannel = "outage" | "renewal"
+
+/**
+ * Post to the channel for this kind of alert: the one set in settings, else TELEGRAM_CHANNEL_ID,
+ * else every linked user. Never throws.
+ */
+export async function notify(channel: NotifyChannel, html: string) {
   if (!bot) return
-  const targets = env.telegramChannelId
-    ? [env.telegramChannelId]
+  const s = await getSettings()
+  const configured = (channel === "outage" ? s.outageChannelId : s.renewalChannelId) || env.telegramChannelId
+  const targets = configured
+    ? [configured]
     : (await db.select({ id: schema.users.telegramChatId }).from(schema.users).where(isNotNull(schema.users.telegramChatId)).all()).map((r) => r.id!)
   for (const chat of targets) {
     await bot.api.sendMessage(chat, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true } }).catch((e) => console.error("[telegram] send failed:", e.message))

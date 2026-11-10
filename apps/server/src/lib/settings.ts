@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm"
 import { db, schema } from "../db/index.ts"
 
 export interface Settings {
@@ -5,6 +6,8 @@ export interface Settings {
   reminderHour: number
   sslReminderDays: number[]
   backupHour: number
+  outageChannelId: string | null
+  renewalChannelId: string | null
 }
 
 const DEFAULTS: Settings = {
@@ -12,6 +15,8 @@ const DEFAULTS: Settings = {
   reminderHour: 10,
   sslReminderDays: [14, 7, 3, 1],
   backupHour: 3,
+  outageChannelId: null,
+  renewalChannelId: null,
 }
 
 export async function getSettings(): Promise<Settings> {
@@ -24,6 +29,10 @@ export async function getSettings(): Promise<Settings> {
 export async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue
+    if (value === null) {
+      await db.delete(schema.settings).where(eq(schema.settings.key, key))
+      continue
+    }
     await db
       .insert(schema.settings)
       .values({ key, value })

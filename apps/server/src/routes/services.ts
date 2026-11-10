@@ -14,7 +14,7 @@ const { services, domains } = schema
 async function toDTOs(rows: Row[]): Promise<ServiceDTO[]> {
   const ids = rows.map((r) => r.id)
   const [u24, u7] = await Promise.all([uptimeMap("service", ids, DAY), uptimeMap("service", ids, 7 * DAY)])
-  return rows.map(({ consecutiveFails: _c, lastHeartbeatAt: _h, sslExpiresAt: _s, ...r }) => ({
+  return rows.map(({ consecutiveFails: _c, downAlerted: _d, lastHeartbeatAt: _h, sslExpiresAt: _s, ...r }) => ({
     ...r,
     uptime24h: u24.get(r.id) ?? null,
     uptime7d: u7.get(r.id) ?? null,

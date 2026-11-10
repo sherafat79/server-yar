@@ -5,7 +5,7 @@ import { api } from "@/lib/api"
 import { useAction, useDomains, useServers } from "@/lib/queries"
 import { SERVICE_TYPE_LABEL } from "@/lib/format"
 import { Field } from "@/components/common"
-import { ListInput, SimpleSelect, useFormState } from "@/components/forms"
+import { AlertDelaySelect, ListInput, SimpleSelect, useFormState } from "@/components/forms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,6 +41,7 @@ const blank: ServiceInput = {
   checkUrl: "",
   checkKeyword: "",
   heartbeatGraceSec: 600,
+  alertDelayMin: 5,
   path: "",
   tags: [],
   notes: "",
@@ -154,6 +155,11 @@ export function ServiceFormDialog({
             {f.checkMethod === "heartbeat" && (
               <Field label="مهلت (ثانیه)" hint="اگر در این مدت پینگ نرسد، قطع حساب می‌شود. آدرس بعد از ذخیره نمایش داده می‌شود." className="sm:col-span-2">
                 <Input dir="ltr" type="number" min={60} value={f.heartbeatGraceSec} onChange={(e) => set("heartbeatGraceSec", Number(e.target.value))} />
+              </Field>
+            )}
+            {f.checkMethod !== "none" && (
+              <Field label="اعلان قطعی" hint="برای سرویس‌های حساس «آنی» بگذار" className="sm:col-span-2">
+                <AlertDelaySelect value={f.alertDelayMin} onChange={(v) => set("alertDelayMin", v)} />
               </Field>
             )}
           </div>

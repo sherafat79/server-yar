@@ -42,14 +42,14 @@ export async function sendReminders() {
         const row = await db.select().from(schema.domains).where(eq(schema.domains.id, i.id)).get()
         if (row) await renewDomain(row, { amount: row.price ?? 0, currency: row.currency, paidAt: row.expiresAt ?? todayTehran(), note: "تمدید خودکار", userId: null })
       }
-      await notify(`🔁 ${kind} «${esc(i.name)}» به‌صورت خودکار تمدید و پرداختش ثبت شد.`)
+      await notify("renewal", `🔁 ${kind} «${esc(i.name)}» به‌صورت خودکار تمدید و پرداختش ثبت شد.`)
       continue
     }
 
     const due = s.reminderDays.includes(i.daysLeft) || (i.daysLeft < 0 && i.daysLeft >= -3)
     if (!due || !(await once(`renew:${i.type}:${i.id}:${i.date}:${i.daysLeft}`))) continue
     const icon = i.daysLeft < 0 ? "⛔️" : i.daysLeft <= 1 ? "🔴" : i.daysLeft <= 3 ? "🟠" : "🟡"
-    await notify(
+    await notify("renewal",
       `${icon} <b>یادآوری تمدید</b>\n${kind} «${esc(i.name)}»\n📅 ${formatJalali(i.date)} (${i.date}) — ${when(i.daysLeft)}${price}${i.autoRenew ? "\n🔁 تمدید خودکار فعال است" : ""}`,
     )
   }
@@ -65,7 +65,7 @@ export async function sendReminders() {
     const d = daysLeft(c.exp.slice(0, 10))
     if (!s.sslReminderDays.includes(d) && !(d < 0 && d >= -1)) continue
     if (!(await once(`ssl:${c.name}:${c.exp}:${d}`))) continue
-    await notify(`🔐 <b>گواهی SSL</b> «${esc(c.name)}» ${d < 0 ? "منقضی شده" : `${when(d)} منقضی می‌شود`} (${formatJalali(c.exp)})`)
+    await notify("renewal", `🔐 <b>گواهی SSL</b> «${esc(c.name)}» ${d < 0 ? "منقضی شده" : `${when(d)} منقضی می‌شود`} (${formatJalali(c.exp)})`)
   }
 }
 

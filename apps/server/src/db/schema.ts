@@ -74,6 +74,10 @@ export const servers = sqliteTable("servers", {
   archived: integer("archived", { mode: "boolean" }).notNull().default(false),
   status: text("status").$type<Status>().notNull().default("pending"),
   consecutiveFails: integer("consecutive_fails").notNull().default(0),
+  /** minutes a target must stay down before the outage alert goes out; 0 = instant */
+  alertDelayMin: integer("alert_delay_min").notNull().default(5),
+  /** whether the outage alert for the current downtime has been sent */
+  downAlerted: integer("down_alerted", { mode: "boolean" }).notNull().default(false),
   lastCheckedAt: text("last_checked_at"),
   latencyMs: integer("latency_ms"),
   lastError: text("last_error"),
@@ -140,6 +144,10 @@ export const services = sqliteTable(
     notes: text("notes"),
     status: text("status").$type<Status>().notNull().default("pending"),
     consecutiveFails: integer("consecutive_fails").notNull().default(0),
+    /** minutes a target must stay down before the outage alert goes out; 0 = instant */
+    alertDelayMin: integer("alert_delay_min").notNull().default(5),
+    /** whether the outage alert for the current downtime has been sent */
+    downAlerted: integer("down_alerted", { mode: "boolean" }).notNull().default(false),
     lastCheckedAt: text("last_checked_at"),
     latencyMs: integer("latency_ms"),
     lastError: text("last_error"),
