@@ -8,6 +8,7 @@
     "dev": "pnpm --parallel --filter @serveryar/server --filter web dev",
     "build": "pnpm --filter @serveryar/shared build && pnpm --filter web build && pnpm --filter @serveryar/server build",
     "typecheck": "pnpm -r typecheck",
+    "test:dates": "pnpm --filter @serveryar/server exec esbuild ../web/tests/date-input.test.ts --bundle --platform=node --main-fields=module,main --format=cjs --outfile=../web/node_modules/.tmp/date-input.test.cjs && node --test apps/web/node_modules/.tmp/date-input.test.cjs",
     "create-admin": "pnpm --filter @serveryar/server create-admin"
   }
 }
