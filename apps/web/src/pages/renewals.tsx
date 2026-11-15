@@ -50,6 +50,10 @@ function MonthCalendar({ items }: { items: RenewalItem[] }) {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-3 flex flex-wrap gap-4 text-xs">
+          <span className="flex items-center gap-1.5 text-primary"><Server className="size-3.5" /> سرور</span>
+          <span className="flex items-center gap-1.5 text-chart-2"><Globe className="size-3.5" /> دامنه</span>
+        </div>
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
           {WEEKDAYS.map((w) => (
             <div key={w} className="py-1">
@@ -80,7 +84,8 @@ function MonthCalendar({ items }: { items: RenewalItem[] }) {
                       to={r.type === "server" ? `/servers/${r.id}` : "/domains"}
                       className={cn(
                         "truncate rounded px-1 py-0.5 text-[10px] leading-tight",
-                        r.daysLeft < 0 || r.daysLeft <= 3 ? "bg-danger/20 text-danger" : r.daysLeft <= 7 ? "bg-warning/20 text-warning" : "bg-primary/15 text-primary",
+                        r.type === "domain" ? "bg-chart-2/15 text-chart-2" : "bg-primary/15 text-primary",
+                        r.daysLeft <= 3 ? "ring-1 ring-inset ring-danger/60" : r.daysLeft <= 7 && "ring-1 ring-inset ring-warning/60",
                       )}
                       title={r.name}
                     >

@@ -40,75 +40,83 @@ function Kpis({ d }: { d: DashboardDTO }) {
   return (
     <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StaggerItem>
-        <Card className="h-full flex-row items-center justify-between px-5">
-          <div>
-            <div className="text-xs text-muted-foreground">سرورهای آنلاین</div>
-            <div className="mt-1 text-3xl font-bold">
-              <CountUp value={d.servers.up} />
-              <span className="text-lg font-normal text-muted-foreground"> / {faNum(d.servers.total)}</span>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {d.servers.maintenance ? `${faNum(d.servers.maintenance)} در تعمیرات` : "مانیتورینگ زنده"}
-            </div>
-          </div>
-          <Ring value={d.servers.up} total={d.servers.total} tone="stroke-success" />
-        </Card>
-      </StaggerItem>
-      <StaggerItem>
-        <Card className={cn("h-full flex-row items-center justify-between px-5", down > 0 && "border-danger/40 bg-danger/[0.06]")}>
-          <div>
-            <div className="text-xs text-muted-foreground">{down > 0 ? "موارد قطع" : "وضعیت سرویس‌ها"}</div>
-            <div className={cn("mt-1 text-3xl font-bold", down > 0 && "text-danger")}>
-              {down > 0 ? <CountUp value={down} /> : "همه سالم"}
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {faNum(d.services.up)} از {faNum(d.services.total)} سرویس آنلاین
-            </div>
-          </div>
-          <div className={cn("grid size-12 place-items-center rounded-2xl", down > 0 ? "bg-danger/15 text-danger" : "bg-success/15 text-success")}>
-            {down > 0 ? <AlertTriangle /> : <CheckCircle2 />}
-          </div>
-        </Card>
-      </StaggerItem>
-      <StaggerItem>
-        <Card className="h-full flex-row items-center justify-between px-5">
-          <div>
-            <div className="text-xs text-muted-foreground">تمدید در ۳۰ روز آینده</div>
-            <div className="mt-1 text-3xl font-bold">
-              <CountUp value={d.renewals30d} />
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {d.upcoming[0] ? `نزدیک‌ترین: ${d.upcoming[0].name} · ${daysText(d.upcoming[0].daysLeft)}` : "چیزی در راه نیست"}
-            </div>
-          </div>
-          <div className="grid size-12 place-items-center rounded-2xl bg-warning/15 text-warning">
-            <CalendarClock />
-          </div>
-        </Card>
-      </StaggerItem>
-      <StaggerItem>
-        <Card className="h-full flex-row items-center justify-between px-5">
-          <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">هزینهٔ ماهانه</div>
-            {currencies.length === 0 ? (
-              <div className="mt-1 text-3xl font-bold">—</div>
-            ) : (
-              <div className="mt-1 grid gap-0.5">
-                {currencies.map((c) => (
-                  <div key={c} className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold">
-                      <CountUp value={d.monthlyCost[c]!} digits={CURRENCY[c].digits} />
-                    </span>
-                    <span className="text-xs text-muted-foreground">{CURRENCY[c].label}</span>
-                  </div>
-                ))}
+        <Link to="/servers" className="block h-full rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+          <Card className="h-full flex-row items-center justify-between px-5">
+            <div>
+              <div className="text-xs text-muted-foreground">سرورهای آنلاین</div>
+              <div className="mt-1 text-3xl font-bold">
+                <CountUp value={d.servers.up} />
+                <span className="text-lg font-normal text-muted-foreground"> / {faNum(d.servers.total)}</span>
               </div>
-            )}
-          </div>
-          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
-            <Wallet />
-          </div>
-        </Card>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {d.servers.maintenance ? `${faNum(d.servers.maintenance)} در تعمیرات` : "مانیتورینگ زنده"}
+              </div>
+            </div>
+            <Ring value={d.servers.up} total={d.servers.total} tone="stroke-success" />
+          </Card>
+        </Link>
+      </StaggerItem>
+      <StaggerItem>
+        <Link to={down > 0 ? "/events" : "/services"} className="block h-full rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+          <Card className={cn("h-full flex-row items-center justify-between px-5", down > 0 && "border-danger/40 bg-danger/[0.06]")}>
+            <div>
+              <div className="text-xs text-muted-foreground">{down > 0 ? "موارد قطع" : "وضعیت سرویس‌ها"}</div>
+              <div className={cn("mt-1 text-3xl font-bold", down > 0 && "text-danger")}>
+                {down > 0 ? <CountUp value={down} /> : "همه سالم"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {faNum(d.services.up)} از {faNum(d.services.total)} سرویس آنلاین
+              </div>
+            </div>
+            <div className={cn("grid size-12 place-items-center rounded-2xl", down > 0 ? "bg-danger/15 text-danger" : "bg-success/15 text-success")}>
+              {down > 0 ? <AlertTriangle /> : <CheckCircle2 />}
+            </div>
+          </Card>
+        </Link>
+      </StaggerItem>
+      <StaggerItem>
+        <Link to="/renewals" className="block h-full rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+          <Card className="h-full flex-row items-center justify-between px-5">
+            <div>
+              <div className="text-xs text-muted-foreground">تمدید در ۳۰ روز آینده</div>
+              <div className="mt-1 text-3xl font-bold">
+                <CountUp value={d.renewals30d} />
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {d.upcoming[0] ? `نزدیک‌ترین: ${d.upcoming[0].name} · ${daysText(d.upcoming[0].daysLeft)}` : "چیزی در راه نیست"}
+              </div>
+            </div>
+            <div className="grid size-12 place-items-center rounded-2xl bg-warning/15 text-warning">
+              <CalendarClock />
+            </div>
+          </Card>
+        </Link>
+      </StaggerItem>
+      <StaggerItem>
+        <Link to="/costs" className="block h-full rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+          <Card className="h-full flex-row items-center justify-between px-5">
+            <div className="min-w-0">
+              <div className="text-xs text-muted-foreground">هزینهٔ ماهانه</div>
+              {currencies.length === 0 ? (
+                <div className="mt-1 text-3xl font-bold">—</div>
+              ) : (
+                <div className="mt-1 grid gap-0.5">
+                  {currencies.map((c) => (
+                    <div key={c} className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-bold">
+                        <CountUp value={d.monthlyCost[c]!} digits={CURRENCY[c].digits} />
+                      </span>
+                      <span className="text-xs text-muted-foreground">{CURRENCY[c].label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+              <Wallet />
+            </div>
+          </Card>
+        </Link>
       </StaggerItem>
     </Stagger>
   )
