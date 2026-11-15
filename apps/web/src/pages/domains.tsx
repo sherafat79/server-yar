@@ -45,7 +45,8 @@ function DomainForm({ open, onOpenChange, domain }: { open: boolean; onOpenChang
           onSubmit={async (e) => {
             e.preventDefault()
             await save.mutateAsync(undefined)
-            onOpenChange(false)
+            if (domain) onOpenChange(false)
+            else set("name", "")
           }}
         >
           <Field label="دامنه *" className="sm:col-span-2">

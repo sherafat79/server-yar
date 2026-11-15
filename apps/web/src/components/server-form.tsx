@@ -130,7 +130,8 @@ export function ServerFormDialog({ open, onOpenChange, server }: { open: boolean
           onSubmit={async (e) => {
             e.preventDefault()
             await save.mutateAsync(undefined)
-            onOpenChange(false)
+            if (server) onOpenChange(false)
+            else set("name", "")
           }}
         >
           <Tabs value={tab} onValueChange={setTab}>
