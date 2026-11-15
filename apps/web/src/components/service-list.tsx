@@ -5,7 +5,8 @@ import type { ServiceDTO, ServiceType } from "@serveryar/shared"
 import { api } from "@/lib/api"
 import { useAction, useChecks } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import { SERVICE_TYPE_LABEL, timeAgo, uptimeText } from "@/lib/format"
+import { daysText, daysUntil, money, SERVICE_TYPE_LABEL, timeAgo, uptimeText } from "@/lib/format"
+import { RenewButton } from "@/components/renew-dialog"
 import { StatusPill, UptimeBars } from "@/components/common"
 import { ConfirmDelete, MaintenanceMenu } from "@/components/forms"
 import { ServiceFormDialog } from "@/components/service-form"
@@ -108,6 +109,10 @@ export function ServiceCard({ s, serverName }: { s: ServiceDTO; serverName?: str
         </div>
       )}
       <div className="mt-auto flex justify-end">
+        {(s.type === "other" || s.price != null || s.nextRenewal) && <div className="me-auto grid gap-2 text-xs">
+          <span>{s.price != null ? money(s.price, s.currency) : ""}{s.nextRenewal ? ` · ${daysText(daysUntil(s.nextRenewal))}` : ""}</span>
+          <RenewButton kind="services" id={s.id} name={s.name} price={s.price ?? null} currency={s.currency} due={s.nextRenewal ?? null} />
+        </div>}
         <MaintenanceMenu kind="services" id={s.id} until={s.maintenanceUntil} />
       </div>
       <ServiceFormDialog open={edit} onOpenChange={setEdit} service={s} />

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router"
-import { ChevronLeft, ChevronRight, Globe, Server } from "lucide-react"
+import { Boxes, ChevronLeft, ChevronRight, Globe, Server } from "lucide-react"
 import { DateObject } from "react-multi-date-picker"
 import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
@@ -53,6 +53,7 @@ function MonthCalendar({ items }: { items: RenewalItem[] }) {
         <div className="mb-3 flex flex-wrap gap-4 text-xs">
           <span className="flex items-center gap-1.5 text-primary"><Server className="size-3.5" /> سرور</span>
           <span className="flex items-center gap-1.5 text-chart-2"><Globe className="size-3.5" /> دامنه</span>
+          <span className="flex items-center gap-1.5 text-chart-3"><Boxes className="size-3.5" /> سرویس</span>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
           {WEEKDAYS.map((w) => (
@@ -81,10 +82,10 @@ function MonthCalendar({ items }: { items: RenewalItem[] }) {
                   {list.slice(0, 3).map((r) => (
                     <Link
                       key={`${r.type}${r.id}`}
-                      to={r.type === "server" ? `/servers/${r.id}` : "/domains"}
+                      to={r.type === "server" ? `/servers/${r.id}` : r.type === "domain" ? "/domains" : "/services"}
                       className={cn(
                         "truncate rounded px-1 py-0.5 text-[10px] leading-tight",
-                        r.type === "domain" ? "bg-chart-2/15 text-chart-2" : "bg-primary/15 text-primary",
+                        r.type === "domain" ? "bg-chart-2/15 text-chart-2" : r.type === "service" ? "bg-chart-3/15 text-chart-3" : "bg-primary/15 text-primary",
                         r.daysLeft <= 3 ? "ring-1 ring-inset ring-danger/60" : r.daysLeft <= 7 && "ring-1 ring-inset ring-warning/60",
                       )}
                       title={r.name}
@@ -132,10 +133,10 @@ export default function RenewalsPage() {
             {data.map((r) => (
               <div key={`${r.type}${r.id}`} className="flex items-center gap-3 rounded-xl border border-glass-border bg-background/20 p-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                  {r.type === "server" ? <Server className="size-4" /> : <Globe className="size-4" />}
+                  {r.type === "server" ? <Server className="size-4" /> : r.type === "domain" ? <Globe className="size-4" /> : <Boxes className="size-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <Link to={r.type === "server" ? `/servers/${r.id}` : "/domains"} className="block truncate text-sm font-medium hover:underline">
+                  <Link to={r.type === "server" ? `/servers/${r.id}` : r.type === "domain" ? "/domains" : "/services"} className="block truncate text-sm font-medium hover:underline">
                     {r.name}
                   </Link>
                   <div className="text-[11px] text-muted-foreground">
@@ -146,7 +147,7 @@ export default function RenewalsPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
                   <span className={cn("text-xs font-semibold", urgencyClass(r.daysLeft))}>{daysText(r.daysLeft)}</span>
-                  <RenewButton kind={r.type === "server" ? "servers" : "domains"} id={r.id} name={r.name} price={r.price} currency={r.currency} due={r.date} />
+                <RenewButton kind={r.type === "server" ? "servers" : r.type === "domain" ? "domains" : "services"} id={r.id} name={r.name} price={r.price} currency={r.currency} due={r.date} />
                 </div>
               </div>
             ))}

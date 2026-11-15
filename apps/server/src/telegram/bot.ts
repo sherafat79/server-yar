@@ -94,7 +94,7 @@ export async function startBot() {
     if (!items.length) return ctx.reply("در ۳۰ روز آینده تمدیدی نداری 🎉")
     const lines = items.map(
       (i) =>
-        `${i.daysLeft < 0 ? "⛔️" : i.daysLeft <= 3 ? "🔴" : i.daysLeft <= 7 ? "🟡" : "🟢"} ${i.type === "server" ? "🖥" : "🌐"} <b>${esc(i.name)}</b> — ${formatJalali(i.date)} (${i.daysLeft < 0 ? `${-i.daysLeft} روز گذشته` : i.daysLeft === 0 ? "امروز" : `${i.daysLeft} روز`})${i.price ? ` · ${i.price.toLocaleString("fa-IR")} ${i.currency}` : ""}`,
+        `${i.daysLeft < 0 ? "⛔️" : i.daysLeft <= 3 ? "🔴" : i.daysLeft <= 7 ? "🟡" : "🟢"} ${i.type === "server" ? "🖥" : i.type === "domain" ? "🌐" : "📦"} <b>${esc(i.name)}</b> — ${formatJalali(i.date)} (${i.daysLeft < 0 ? `${-i.daysLeft} روز گذشته` : i.daysLeft === 0 ? "امروز" : `${i.daysLeft} روز`})${i.price ? ` · ${i.price.toLocaleString("fa-IR")} ${i.currency}` : ""}`,
     )
     await ctx.reply(lines.join("\n"), { parse_mode: "HTML" })
   })

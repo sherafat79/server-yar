@@ -101,6 +101,10 @@ export type ServerInput = z.infer<typeof serverSchema>
 export const serviceSchema = z.object({
   name: z.string().trim().min(1).max(100),
   type: z.enum(SERVICE_TYPES),
+  price: z.coerce.number().nonnegative().optional().nullable(),
+  currency: z.enum(CURRENCIES).default("USD"),
+  billingCycle: z.enum(BILLING_CYCLES).default("monthly"),
+  nextRenewal: isoDate.optional().nullable(),
   serverId: z.number().int().optional().nullable(),
   domainId: z.number().int().optional().nullable(),
   hostname: optStr, // full host, e.g. api.example.com
@@ -236,7 +240,7 @@ export interface DomainDTO extends DomainInput {
 
 export interface PaymentDTO {
   id: number
-  targetType: "server" | "domain"
+  targetType: "server" | "domain" | "service"
   targetId: number
   targetName: string
   amount: number
@@ -269,7 +273,7 @@ export interface ActivityDTO {
 }
 
 export interface RenewalItem {
-  type: "server" | "domain"
+  type: "server" | "domain" | "service"
   id: number
   name: string
   date: string

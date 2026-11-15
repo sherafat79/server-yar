@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { test } from "node:test"
 import { Hono } from "hono"
-import type { CertificateDTO, DomainDTO, Named, ServerDTO } from "@serveryar/shared"
+import type { CertificateDTO, DomainDTO, Named, PaymentDTO, RenewalItem, ServerDTO, ServiceDTO } from "@serveryar/shared"
 import { domainList } from "../../../web/src/lib/domain-list.ts"
 import type { AppEnv } from "../auth.ts"
 
@@ -38,6 +38,8 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     const { serverRoutes } = await import("./servers.ts")
     const { locationRoutes, registrarRoutes } = await import("./admin.ts")
     const { domainRoutes } = await import("./domains.ts")
+    const { serviceRoutes } = await import("./services.ts")
+    const { overviewRoutes } = await import("./overview.ts")
     const { HttpError } = await import("../lib/http.ts")
     const app = new Hono<AppEnv>()
     app.use("*", async (c, next) => { c.set("user", user!); await next() })
@@ -50,6 +52,8 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     app.route("/locations", locationRoutes)
     app.route("/registrars", registrarRoutes)
     app.route("/domains", domainRoutes)
+    app.route("/services", serviceRoutes)
+    app.route("/", overviewRoutes)
     const request = (path: string, method = "GET", body?: unknown) => app.request(path, {
       method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body),
     })
@@ -90,6 +94,39 @@ test("independent SSL and remembered locations survive CRUD and migrations", asy
     await request(`/domains/${another!.id}`, "PATCH", { registrar: "Namecheap" })
     await request(`/domains/${another!.id}`, "PATCH", { registrar: "   " })
     assert.equal(((await (await request("/registrars")).json()) as { name: string }[]).length, 3)
+    const { todayTehran, addMonths } = await import("../lib/dates.ts")
+    const today = todayTehran()
+    const prepaid = await request("/services", "POST", { name: "پنل پیامکی", type: "other", checkMethod: "none", price: 200000, currency: "IRT", billingCycle: "quarterly", nextRenewal: today })
+    assert.equal(prepaid.status, 200)
+    const service = await prepaid.json() as ServiceDTO
+    assert.equal(service.serverId, null)
+    const renewals = await (await request("/renewals")).json() as RenewalItem[]
+    assert.ok(renewals.some((r) => r.type === "service" && r.id === service.id && r.date === today))
+    const { sendReminders } = await import("../scheduler.ts")
+    // Exercise scheduling without starting the Telegram bot or sending real messages.
+    await sendReminders()
+    await sendReminders()
+    assert.deepEqual((await db.select().from(schema.sentNotifications)).map((n) => n.key), [`renew:service:${service.id}:${today}:0`])
+    assert.equal((await request(`/services/${service.id}/renew`, "POST", { amount: -1 })).status, 400)
+    assert.equal((await request(`/services/${service.id}/renew`, "POST", { amount: 250000, paidAt: today })).status, 200)
+    const updated = await (await request(`/services/${service.id}`)).json() as ServiceDTO
+    assert.equal(updated.nextRenewal, addMonths(today, 3))
+    const history = await (await request("/payments")).json() as PaymentDTO[]
+    assert.equal(history.length, 1)
+    assert.equal(history[0]!.targetType, "service")
+    assert.equal(history[0]!.targetName, "پنل پیامکی")
+    assert.equal(history[0]!.amount, 250000)
+    assert.equal(history[0]!.currency, "IRT")
+    const customDue = addMonths(today, 5)
+    assert.equal((await request(`/services/${service.id}/renew`, "POST", { amount: 100000, nextRenewal: customDue })).status, 200)
+    assert.equal(((await (await request(`/services/${service.id}`)).json()) as ServiceDTO).nextRenewal, customDue)
+    assert.equal((await request("/services/999999/renew", "POST", { amount: 1 })).status, 404)
+    assert.equal(((await (await request("/payments")).json()) as PaymentDTO[]).length, 2)
+    const costs = await (await request("/costs")).json() as { monthly: { IRT: number } }
+    assert.equal(costs.monthly.IRT, 66666.67)
+  } catch (error) {
+    console.error(error)
+    throw error
   } finally {
     client.close()
     await rm(folder, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })

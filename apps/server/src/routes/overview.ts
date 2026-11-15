@@ -18,9 +18,10 @@ import { dailyUptime } from "../lib/uptime.ts"
 const { servers, services, domains, incidents, payments, activity, users, providers } = schema
 
 export async function upcomingRenewals(withinDays: number): Promise<RenewalItem[]> {
-  const [srv, dom] = await Promise.all([
+  const [srv, dom, svc] = await Promise.all([
     db.select().from(servers).where(eq(servers.archived, false)).all(),
     db.select().from(domains).all(),
+    db.select().from(services).all(),
   ])
   const items: RenewalItem[] = []
   for (const s of srv) {
@@ -31,14 +32,19 @@ export async function upcomingRenewals(withinDays: number): Promise<RenewalItem[
     if (!d.expiresAt) continue
     items.push({ type: "domain", id: d.id, name: d.name, date: d.expiresAt, daysLeft: daysLeft(d.expiresAt), price: d.price, currency: d.currency, autoRenew: d.autoRenew })
   }
+  for (const s of svc) {
+    if (!s.nextRenewal) continue
+    items.push({ type: "service", id: s.id, name: s.name, date: s.nextRenewal, daysLeft: daysLeft(s.nextRenewal), price: s.price, currency: s.currency, autoRenew: false })
+  }
   return items.filter((i) => i.daysLeft <= withinDays).sort((a, b) => a.daysLeft - b.daysLeft)
 }
 
 async function costs() {
-  const [srv, dom, prov] = await Promise.all([
+  const [srv, dom, prov, svc] = await Promise.all([
     db.select().from(servers).where(eq(servers.archived, false)).all(),
     db.select().from(domains).all(),
     db.select().from(providers).all(),
+    db.select().from(services).all(),
   ])
   const provName = new Map(prov.map((p) => [p.id, p.name]))
   const monthly: Partial<Record<Currency, number>> = {}
@@ -55,6 +61,7 @@ async function costs() {
     byProvider.set(key, e)
   }
   for (const d of dom) if (d.price) add(d.currency, d.price / 12)
+  for (const s of svc) if (s.price) add(s.currency, monthlyCost(s.price, s.billingCycle))
   const round = (v: number) => Math.round(v * 100) / 100
   const yearly = Object.fromEntries(Object.entries(monthly).map(([k, v]) => [k, round(v * 12)]))
   for (const k of Object.keys(monthly) as Currency[]) monthly[k] = round(monthly[k]!)
@@ -130,11 +137,12 @@ overviewRoutes.get("/payments", async (c) => {
     .where(and(from ? gte(payments.paidAt, from) : undefined, to ? lte(payments.paidAt, to) : undefined))
     .orderBy(desc(payments.paidAt), desc(payments.id))
     .all()
-  const [srv, dom] = await Promise.all([
+  const [srv, dom, svc] = await Promise.all([
     db.select({ id: servers.id, name: servers.name }).from(servers).all(),
     db.select({ id: domains.id, name: domains.name }).from(domains).all(),
+    db.select({ id: services.id, name: services.name }).from(services).all(),
   ])
-  const names = { server: new Map(srv.map((s) => [s.id, s.name])), domain: new Map(dom.map((d) => [d.id, d.name])) }
+  const names = { server: new Map(srv.map((s) => [s.id, s.name])), domain: new Map(dom.map((d) => [d.id, d.name])), service: new Map(svc.map((s) => [s.id, s.name])) }
   const out: PaymentDTO[] = rows.map(({ p, userName }) => ({
     id: p.id,
     targetType: p.targetType,

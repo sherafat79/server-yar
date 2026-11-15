@@ -18,6 +18,7 @@ export default function ServicesPage() {
   const [type, setType] = useState<ServiceType | "all">("all")
   const [onlyDown, setOnlyDown] = useState(false)
   const [open, setOpen] = useState(false)
+  const [misc, setMisc] = useState(false)
   const sName = useMemo(() => new Map(servers.data?.map((s) => [s.id, s.name])), [servers.data])
 
   const counts = useMemo(() => {
@@ -38,10 +39,13 @@ export default function ServicesPage() {
         title="سرویس‌ها"
         description={data ? `${faNum(data.length)} سرویس روی ${faNum(servers.data?.length ?? 0)} سرور` : undefined}
         actions={
-          <Button onClick={() => setOpen(true)}>
+          <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { setMisc(true); setOpen(true) }}><Plus /> سرویس متفرقه</Button>
+          <Button onClick={() => { setMisc(false); setOpen(true) }}>
             <Plus />
             سرویس جدید
           </Button>
+          </div>
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -89,7 +93,7 @@ export default function ServicesPage() {
           ))}
         </Stagger>
       )}
-      <ServiceFormDialog open={open} onOpenChange={setOpen} />
+      <ServiceFormDialog open={open} onOpenChange={setOpen} defaults={misc ? { type: "other", checkMethod: "none" } : undefined} />
     </>
   )
 }

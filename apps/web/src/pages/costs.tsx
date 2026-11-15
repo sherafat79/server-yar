@@ -38,7 +38,7 @@ export default function CostsPage() {
       <>
         <PageHeader title="هزینه‌ها" />
         <EmptyState icon={<Wallet />} title="هنوز هزینه‌ای ثبت نشده">
-          برای سرورها و دامنه‌ها قیمت وارد کن تا اینجا پر شود.
+          برای سرورها، دامنه‌ها و سرویس‌ها قیمت وارد کن تا اینجا پر شود.
         </EmptyState>
       </>
     )
@@ -134,7 +134,7 @@ export default function CostsPage() {
                 <TableRow key={p.id}>
                   <TableCell>{jalali(p.paidAt)}</TableCell>
                   <TableCell>
-                    {p.targetType === "server" ? "🖥" : "🌐"} {p.targetName}
+                    {p.targetType === "server" ? "🖥" : p.targetType === "domain" ? "🌐" : "📦"} {p.targetName}
                     {p.note && <span className="text-xs text-muted-foreground"> · {p.note}</span>}
                   </TableCell>
                   <TableCell className="font-medium">{money(p.amount, p.currency)}</TableCell>

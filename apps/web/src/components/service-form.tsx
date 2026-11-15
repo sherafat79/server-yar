@@ -1,11 +1,12 @@
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
-import { SERVICE_TYPES, type CheckMethod, type ServiceDTO, type ServiceInput, type ServiceType } from "@serveryar/shared"
+import { BILLING_CYCLES, SERVICE_TYPES, type CheckMethod, type ServiceDTO, type ServiceInput, type ServiceType } from "@serveryar/shared"
 import { api } from "@/lib/api"
 import { useAction, useDomains, useServers } from "@/lib/queries"
-import { SERVICE_TYPE_LABEL } from "@/lib/format"
+import { CYCLE_LABEL, SERVICE_TYPE_LABEL } from "@/lib/format"
+import { DateField } from "@/components/date-field"
 import { Field } from "@/components/common"
-import { AlertDelaySelect, ListInput, SimpleSelect, useFormState } from "@/components/forms"
+import { AlertDelaySelect, CurrencySelect, ListInput, SimpleSelect, useFormState } from "@/components/forms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -33,6 +34,10 @@ const DEFAULT_METHOD: Record<ServiceType, CheckMethod> = {
 const blank: ServiceInput = {
   name: "",
   type: "website",
+  price: null,
+  currency: "IRT",
+  billingCycle: "monthly",
+  nextRenewal: null,
   serverId: null,
   domainId: null,
   hostname: "",
@@ -84,7 +89,8 @@ export function ServiceFormDialog({
           onSubmit={async (e) => {
             e.preventDefault()
             await save.mutateAsync(undefined)
-            onOpenChange(false)
+            if (service) onOpenChange(false)
+            else set("name", "")
           }}
         >
           <Field label="نام سرویس *">
@@ -170,6 +176,14 @@ export function ServiceFormDialog({
           <Field label="تگ‌ها">
             <ListInput value={f.tags} onChange={(v) => set("tags", v)} />
           </Field>
+          <div className="grid gap-4 rounded-xl border border-glass-border bg-muted/30 p-4 sm:col-span-2 sm:grid-cols-2">
+            <Field label="مبلغ شارژ هر دوره">
+              <Input dir="ltr" type="number" min={0} step="any" value={f.price ?? ""} onChange={(e) => set("price", e.target.value === "" ? null : Number(e.target.value))} />
+            </Field>
+            <Field label="ارز"><CurrencySelect value={f.currency} onChange={(v) => set("currency", v)} /></Field>
+            <Field label="دورهٔ شارژ"><SimpleSelect value={f.billingCycle} onChange={(v) => set("billingCycle", v)} options={Object.fromEntries(BILLING_CYCLES.map((c) => [c, CYCLE_LABEL[c]])) as Record<typeof f.billingCycle, string>} /></Field>
+            <Field label="موعد شارژ بعدی" hint="برای نمایش در تقویم و یادآوری تلگرام"><DateField value={f.nextRenewal} onChange={(v) => set("nextRenewal", v)} /></Field>
+          </div>
           <Field label="یادداشت" className="sm:col-span-2">
             <Textarea rows={3} value={f.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
           </Field>

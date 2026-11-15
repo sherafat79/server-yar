@@ -127,11 +127,11 @@ function RenewalRow({ r }: { r: RenewalItem }) {
   const bar = r.daysLeft <= 3 ? "bg-danger" : r.daysLeft <= 7 ? "bg-warning" : "bg-primary"
   return (
     <Link
-      to={r.type === "server" ? `/servers/${r.id}` : "/domains"}
+      to={r.type === "server" ? `/servers/${r.id}` : r.type === "domain" ? "/domains" : "/services"}
       className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-accent/50"
     >
       <div className="grid size-9 place-items-center rounded-lg bg-muted text-muted-foreground">
-        {r.type === "server" ? <Server className="size-4" /> : <Globe className="size-4" />}
+        {r.type === "server" ? <Server className="size-4" /> : r.type === "domain" ? <Globe className="size-4" /> : <Boxes className="size-4" />}
       </div>
       <div className="min-w-0">
         <div className="flex items-center justify-between gap-2">

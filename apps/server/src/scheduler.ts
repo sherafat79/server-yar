@@ -28,7 +28,7 @@ export async function sendReminders() {
   const s = await getSettings()
   const items = await upcomingRenewals(Math.max(...s.reminderDays, 0))
   for (const i of items) {
-    const kind = i.type === "server" ? "🖥 سرور" : "🌐 دامنه"
+    const kind = i.type === "server" ? "🖥 سرور" : i.type === "domain" ? "🌐 دامنه" : "📦 سرویس"
     const price = i.price ? `\n💰 ${i.price.toLocaleString("en-US")} ${i.currency}` : ""
 
     if (i.autoRenew && i.daysLeft < 0) {

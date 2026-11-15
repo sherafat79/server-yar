@@ -21,7 +21,7 @@ export function RenewButton({
   due,
   size = "sm",
 }: {
-  kind: "servers" | "domains"
+  kind: "servers" | "domains" | "services"
   id: number
   name: string
   price: number | null
@@ -34,6 +34,7 @@ export function RenewButton({
   const [cur, setCur] = useState<Currency>(currency)
   const [paidAt, setPaidAt] = useState<string | null>(todayIso())
   const [note, setNote] = useState("")
+  const [nextRenewal, setNextRenewal] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -41,12 +42,13 @@ export function RenewButton({
       setCur(currency)
       setPaidAt(todayIso())
       setNote("")
+      setNextRenewal(null)
     }
   }, [open, price, currency])
 
   const renew = useAction(
-    () => api(`/${kind}/${id}/renew`, { body: { amount: amount === "" ? 0 : amount, currency: cur, paidAt: paidAt ?? undefined, note: note || null } }),
-    `«${name}» تمدید شد`,
+    () => api(`/${kind}/${id}/renew`, { body: { amount: amount === "" ? 0 : amount, currency: cur, paidAt: paidAt ?? undefined, note: note || null, ...(kind === "services" && nextRenewal ? { nextRenewal } : {}) } }),
+    kind === "services" ? `شارژ «${name}» ثبت شد` : `«${name}» تمدید شد`,
   )
 
   return (
@@ -54,12 +56,12 @@ export function RenewButton({
       <DialogTrigger asChild>
         <Button size={size} variant="outline" className="border-success/40 text-success hover:bg-success/10">
           <CalendarCheck />
-          تمدید شد
+          {kind === "services" ? "ثبت شارژ" : "تمدید شد"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>ثبت تمدید «{name}»</DialogTitle>
+          <DialogTitle>{kind === "services" ? "ثبت شارژ" : "ثبت تمدید"} «{name}»</DialogTitle>
           <DialogDescription>
             {due ? `سررسید فعلی ${jalali(due)} یک دوره جلو می‌رود.` : "سررسید از امروز محاسبه می‌شود."} پرداخت در تاریخچهٔ هزینه‌ها ثبت می‌شود.
           </DialogDescription>
@@ -77,6 +79,9 @@ export function RenewButton({
           <Field label="یادداشت">
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="اختیاری" />
           </Field>
+          {kind === "services" && <Field label="موعد شارژ بعدی" hint="خالی = یک دوره بعد از سررسید فعلی" className="sm:col-span-2">
+            <DateField value={nextRenewal} onChange={setNextRenewal} />
+          </Field>}
         </div>
         <DialogFooter>
           <Button
@@ -87,7 +92,7 @@ export function RenewButton({
             }}
           >
             {renew.isPending && <Loader2 className="animate-spin" />}
-            ثبت تمدید
+            {kind === "services" ? "ثبت شارژ" : "ثبت تمدید"}
           </Button>
         </DialogFooter>
       </DialogContent>

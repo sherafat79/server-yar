@@ -1,10 +1,11 @@
 import { and, eq, isNull } from "drizzle-orm"
 import { Hono } from "hono"
-import { maintenanceSchema, serviceSchema, type ServiceDTO, type ServiceInput } from "@serveryar/shared"
+import { CYCLE_MONTHS, maintenanceSchema, renewSchema, serviceSchema, type ServiceDTO, type ServiceInput } from "@serveryar/shared"
 import type { AppEnv } from "../auth.ts"
 import { db, schema } from "../db/index.ts"
 import { logActivity } from "../lib/activity.ts"
 import { randomToken } from "../lib/crypto.ts"
+import { addMonths, todayTehran } from "../lib/dates.ts"
 import { body, idParam, notFound } from "../lib/http.ts"
 import { checkSeries, DAY, HOUR, uptimeMap } from "../lib/uptime.ts"
 
@@ -94,6 +95,25 @@ serviceRoutes.patch("/:id", async (c) => {
   await logActivity(c.get("user").id, "update", "service", id, `سرویس «${row!.name}» ویرایش شد`)
   const [dto] = await toDTOs([row!])
   return c.json(dto)
+})
+
+serviceRoutes.post("/:id/renew", async (c) => {
+  const id = idParam(c)
+  const input = await body(c, renewSchema.extend({ nextRenewal: serviceSchema.shape.nextRenewal }))
+  await db.transaction(async (tx) => {
+    const row = await tx.select().from(services).where(eq(services.id, id)).get()
+    if (!row) throw notFound()
+    const from = row.nextRenewal ?? todayTehran()
+    const to = input.nextRenewal ?? addMonths(from, CYCLE_MONTHS[row.billingCycle])
+    await tx.insert(schema.payments).values({
+      targetType: "service", targetId: id, periodFrom: from, periodTo: to,
+      amount: input.amount ?? row.price ?? 0, currency: input.currency ?? row.currency,
+      paidAt: input.paidAt ?? todayTehran(), note: input.note ?? null, userId: c.get("user").id,
+    })
+    await tx.update(services).set({ nextRenewal: to }).where(eq(services.id, id))
+    await tx.insert(schema.activity).values({ userId: c.get("user").id, action: "renew", entity: "service", entityId: id, summary: `شارژ سرویس «${row.name}» تا ${to} ثبت شد` })
+  })
+  return c.json({ ok: true })
 })
 
 serviceRoutes.delete("/:id", async (c) => {

@@ -129,6 +129,10 @@ export const services = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
     type: text("type").$type<ServiceType>().notNull(),
+    price: real("price"),
+    currency: text("currency").$type<Currency>().notNull().default("USD"),
+    billingCycle: text("billing_cycle").$type<BillingCycle>().notNull().default("monthly"),
+    nextRenewal: text("next_renewal"),
     serverId: integer("server_id").references(() => servers.id, { onDelete: "set null" }),
     domainId: integer("domain_id").references(() => domains.id, { onDelete: "set null" }),
     hostname: text("hostname"),
@@ -202,7 +206,7 @@ export const incidents = sqliteTable(
 
 export const payments = sqliteTable("payments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  targetType: text("target_type").$type<"server" | "domain">().notNull(),
+  targetType: text("target_type").$type<"server" | "domain" | "service">().notNull(),
   targetId: integer("target_id").notNull(),
   amount: real("amount").notNull(),
   currency: text("currency").$type<Currency>().notNull(),
