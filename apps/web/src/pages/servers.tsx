@@ -4,8 +4,10 @@ import { Archive, Cpu, HardDrive, MapPin, MemoryStick, Plus, Search, Server } fr
 import type { ServerDTO } from "@serveryar/shared"
 import { useProviders, useServers, useVendors } from "@/lib/queries"
 import { cn } from "@/lib/utils"
+import { compareResources, RESOURCE_SORTS, type ResourceSort } from "@/lib/resource-sort"
+import { SimpleSelect } from "@/components/forms"
 import { CYCLE_LABEL, daysText, daysUntil, faNum, money, uptimeText, urgencyClass } from "@/lib/format"
-import { EmptyState, PageHeader, StatusDot, Stagger, StaggerItem } from "@/components/common"
+import { EmptyState, Field, PageHeader, StatusDot, Stagger, StaggerItem } from "@/components/common"
 import { ServerFormDialog } from "@/components/server-form"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -103,6 +105,7 @@ export default function ServersPage() {
   const providers = useProviders()
   const vendors = useVendors()
   const [q, setQ] = useState("")
+  const [sort, setSort] = useState<ResourceSort>("nameAsc")
   const [filter, setFilter] = useState("active")
   const formOpen = params.get("new") === "1"
 
@@ -116,7 +119,7 @@ export default function ServersPage() {
     if (!q) return true
     const hay = [s.name, ...s.ips, s.location, ...s.tags, s.providerId && pName.get(s.providerId)].join(" ").toLowerCase()
     return hay.includes(q.toLowerCase())
-  })
+  }).sort((a, b) => compareResources(a, b, sort))
 
   return (
     <>
@@ -135,6 +138,9 @@ export default function ServersPage() {
           <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="جستجوی نام، IP، تگ…" className="glass pr-9" />
         </div>
+        <Field label="مرتب‌سازی" className="w-full sm:w-48">
+          <SimpleSelect value={sort} onChange={setSort} options={RESOURCE_SORTS} />
+        </Field>
         <Tabs value={filter} onValueChange={setFilter}>
           <TabsList>
             <TabsTrigger value="active">فعال</TabsTrigger>

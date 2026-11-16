@@ -3,8 +3,10 @@ import { Boxes, Plus, Search } from "lucide-react"
 import { SERVICE_TYPES, type ServiceType } from "@serveryar/shared"
 import { useServers, useServices } from "@/lib/queries"
 import { cn } from "@/lib/utils"
+import { compareResources, RESOURCE_SORTS, type ResourceSort } from "@/lib/resource-sort"
+import { SimpleSelect } from "@/components/forms"
 import { faNum, SERVICE_TYPE_LABEL } from "@/lib/format"
-import { EmptyState, PageHeader, Stagger, StaggerItem } from "@/components/common"
+import { EmptyState, Field, PageHeader, Stagger, StaggerItem } from "@/components/common"
 import { SERVICE_ICON, ServiceCard } from "@/components/service-list"
 import { ServiceFormDialog } from "@/components/service-form"
 import { Button } from "@/components/ui/button"
@@ -15,6 +17,7 @@ export default function ServicesPage() {
   const { data, isLoading } = useServices()
   const servers = useServers()
   const [q, setQ] = useState("")
+  const [sort, setSort] = useState<ResourceSort>("downFirst")
   const [type, setType] = useState<ServiceType | "all">("all")
   const [onlyDown, setOnlyDown] = useState(false)
   const [open, setOpen] = useState(false)
@@ -30,7 +33,7 @@ export default function ServicesPage() {
   const list = (data ?? [])
     .filter((s) => (type === "all" || s.type === type) && (!onlyDown || s.status === "down"))
     .filter((s) => !q || [s.name, s.hostname, s.path, ...s.tags, s.serverId && sName.get(s.serverId)].join(" ").toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => Number(b.status === "down") - Number(a.status === "down"))
+    .sort((a, b) => compareResources(a, b, sort))
   const downCount = data?.filter((s) => s.status === "down").length ?? 0
 
   return (
@@ -53,6 +56,9 @@ export default function ServicesPage() {
           <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="جستجو…" className="glass pr-9" />
         </div>
+        <Field label="مرتب‌سازی" className="w-full sm:w-48">
+          <SimpleSelect value={sort} onChange={setSort} options={RESOURCE_SORTS} />
+        </Field>
         <div className="flex flex-wrap gap-1.5">
           <Chip active={type === "all"} onClick={() => setType("all")}>
             همه
