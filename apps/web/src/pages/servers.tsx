@@ -105,7 +105,7 @@ export default function ServersPage() {
   const providers = useProviders()
   const vendors = useVendors()
   const [q, setQ] = useState("")
-  const [sort, setSort] = useState<ResourceSort>("nameAsc")
+  const [sort, setSort] = useState<ResourceSort>("renewalAsc")
   const [filter, setFilter] = useState("active")
   const formOpen = params.get("new") === "1"
 

@@ -17,7 +17,7 @@ export default function ServicesPage() {
   const { data, isLoading } = useServices()
   const servers = useServers()
   const [q, setQ] = useState("")
-  const [sort, setSort] = useState<ResourceSort>("downFirst")
+  const [sort, setSort] = useState<ResourceSort>("renewalAsc")
   const [type, setType] = useState<ServiceType | "all">("all")
   const [onlyDown, setOnlyDown] = useState(false)
   const [open, setOpen] = useState(false)
